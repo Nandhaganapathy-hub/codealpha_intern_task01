@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Classification Result{% endblock %}
+
+{% block content %}
+<!--
+  File: templates/result.html
+  Purpose: Shows the classification result after a record is submitted.
+           Displays: UNIQUE, REDUNDANT, or FALSE_POSITIVE verdict.
+-->
+
+<div class="page-header">
+  <h1><i class="fa-solid fa-magnifying-glass-chart"></i> Detection Result</h1>
+  <p>Analysis complete — here is the duplicate detection verdict for your submission</p>
+</div>
+
+<!-- ════ MAIN RESULT CARD ══════════════════ -->
+{% set cls = result.classification %}
+
+<div class="result-card
+  {% if cls == 'UNIQUE' %}unique-res
+  {% elif cls == 'REDUNDANT' %}redundant-res
+  {% else %}fp-res{% endif %}">
+
+  <!-- Big Icon -->
+  <div class="result-icon">
+    {% if cls == 'UNIQUE' %}✅
+    {% elif cls == 'REDUNDANT' %}🚫
+    {% else %}⚠️{% endif %}
+  </div>
+
+  <!-- Verdict Title -->
+  <div class="result-title">
+    {% if cls == 'UNIQUE' %}New Unique Record
+    {% elif cls == 'REDUNDANT' %}Duplicate Detected!
+    {% else %}False Positive Found{% endif %}
+  </div>
+
+  <!-- Explanation -->
+  <p class="result-reason">{{ result.reason }}</p>
+
+  <!-- Similarity Meter (only for non-unique) -->
+  {% if result.similarity_score > 0 %}
+  <div class="similarity-meter">
+    <div class="meter-label">
+      <span>Similarity Score</span>
+      <span style="font-weight:700;">{{ result.similarity_score | round(1) }}%</span>
+    </div>
+    <div class="meter-bar">
+      <div class="meter-fill
+        {% if cls == 'UNIQUE' %}unique-fill
+        {% elif cls == 'REDUNDANT' %}redundant-fill
+        {% else %}fp-fill{% endif %}"
+        id="meterFill"
+        style="width: 0%">
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ════ DETAIL CARDS (Submitted vs Matched) ═ -->
+<div style="display:grid; grid-template-columns: 1fr {% if result.matched_record %}1fr{% endif %}; gap:1.5rem; margin-bottom:2rem;">
+
+  <!-- Submitted Record -->
+  <div class="card">
+    <h3 style="font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-secondary); margin-bottom:1.2rem;">
+      <i class="fa-solid fa-file-circle-plus" style="color:var(--accent-primary)"></i> Submitted Record
+    </h3>
+    <dl style="display:grid; grid-template-columns:auto 1fr; gap:0.5rem 1rem;">
+      <dt style="color:var(--text-muted); font-size:0.78rem;">ID</dt>
+      <dd class="mono">{{ submitted.unique_id }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">Name</dt>
+      <dd>{{ submitted.full_name }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">Email</dt>
+      <dd class="mono">{{ submitted.email }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">Phone</dt>
+      <dd class="mono">{{ submitted.phone }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">City</dt>
+      <dd>{{ submitted.city }}, {{ submitted.state }}</dd>
+      {% if submitted.address %}
+      <dt style="color:var(--text-muted); font-size:0.78rem;">Address</dt>
+      <dd>{{ submitted.address }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+
+  <!-- Matched Record (only if a match was found) -->
+  {% if result.matched_record %}
+  <div class="card" style="border-color:
+    {% if cls == 'REDUNDANT' %}rgba(239,68,68,0.3){% else %}rgba(245,158,11,0.3){% endif %}">
+    <h3 style="font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-secondary); margin-bottom:1.2rem;">
+      <i class="fa-solid fa-database" style="color:
+        {% if cls == 'REDUNDANT' %}var(--color-redundant){% else %}var(--color-fp){% endif %}">
+      </i> Matched Existing Record
+    </h3>
+    <dl style="display:grid; grid-template-columns:auto 1fr; gap:0.5rem 1rem;">
+      <dt style="color:var(--text-muted); font-size:0.78rem;">ID</dt>
+      <dd class="mono">{{ result.matched_record.unique_id }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">Name</dt>
+      <dd>{{ result.matched_record.full_name }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">Email</dt>
+      <dd class="mono">{{ result.matched_record.email }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">Phone</dt>
+      <dd class="mono">{{ result.matched_record.phone }}</dd>
+      <dt style="color:var(--text-muted); font-size:0.78rem;">City</dt>
+      <dd>{{ result.matched_record.city }}, {{ result.matched_record.state }}</dd>
+    </dl>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ════ WHAT HAPPENED EXPLANATION ════════ -->
+<div class="card" style="margin-bottom:2rem;">
+  <h3 style="font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-secondary); margin-bottom:1.2rem;">
+    <i class="fa-solid fa-brain" style="color:var(--accent-primary)"></i> How the System Decided
+  </h3>
+
+  {% if cls == 'UNIQUE' %}
+  <div style="display:flex; flex-direction:column; gap:0.6rem;">
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-unique)">✔</span>
+      <span style="font-size:0.875rem;">No email address match found in database</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-unique)">✔</span>
+      <span style="font-size:0.875rem;">No phone number match found in database</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-unique)">✔</span>
+      <span style="font-size:0.875rem;">Fuzzy similarity score below 75% — name and address are sufficiently different</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-unique)">✔</span>
+      <span style="font-size:0.875rem; font-weight:600; color:var(--color-unique);">Record has been saved to the master database</span>
+    </div>
+  </div>
+
+  {% elif cls == 'REDUNDANT' %}
+  <div style="display:flex; flex-direction:column; gap:0.6rem;">
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-redundant)">✘</span>
+      <span style="font-size:0.875rem;">Exact field match detected (email, phone, or ID already exists)</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-redundant)">✘</span>
+      <span style="font-size:0.875rem; font-weight:600; color:var(--color-redundant);">Record was REJECTED — not saved to the database</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--accent-primary)">ℹ</span>
+      <span style="font-size:0.875rem; color:var(--text-secondary);">This submission has been logged in the audit trail</span>
+    </div>
+  </div>
+
+  {% else %}{# FALSE_POSITIVE #}
+  <div style="display:flex; flex-direction:column; gap:0.6rem;">
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-fp)">⚠</span>
+      <span style="font-size:0.875rem;">No exact field match — email, phone, and ID are different</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-fp)">⚠</span>
+      <span style="font-size:0.875rem;">Name and/or address similarity score between 75% and 94% — possibly same person</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--color-redundant)">✘</span>
+      <span style="font-size:0.875rem; font-weight:600; color:var(--color-redundant);">Record was FLAGGED — not saved pending review</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <span style="color:var(--accent-primary)">ℹ</span>
+      <span style="font-size:0.875rem; color:var(--text-secondary);">Requires manual verification before acceptance</span>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ════ ACTIONS ════════════════════════════ -->
+<div style="display:flex; gap:1rem; flex-wrap:wrap;">
+  <a href="{{ url_for('add_record_form') }}" class="btn btn-primary">
+    <i class="fa-solid fa-plus"></i> Add Another Record
+  </a>
+  <a href="{{ url_for('view_records') }}" class="btn btn-outline">
+    <i class="fa-solid fa-table"></i> View All Records
+  </a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline">
+    <i class="fa-solid fa-chart-pie"></i> Dashboard
+  </a>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Animate the similarity meter bar
+window.addEventListener('load', () => {
+  const fill = document.getElementById('meterFill');
+  if (fill) {
+    setTimeout(() => {
+      fill.style.width = '{{ result.similarity_score | round(1) }}%';
+    }, 300);
+  }
+});
+</script>
+{% endblock %}

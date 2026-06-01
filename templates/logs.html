@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Submission Logs{% endblock %}
+
+{% block content %}
+<!--
+  File: templates/logs.html
+  Purpose: Shows all submission attempts with classification and similarity score
+-->
+
+<div class="page-header">
+  <h1><i class="fa-solid fa-list-check"></i> Submission Logs</h1>
+  <p>Complete audit trail of all submission attempts — both accepted and rejected entries</p>
+</div>
+
+<!-- Summary Badges -->
+<div style="display:flex; gap:0.75rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+  <span class="badge badge-unique" style="font-size:0.85rem; padding:.4rem 1rem;">
+    <i class="fa-solid fa-check"></i>
+    Unique: {{ logs | selectattr('classification','eq','UNIQUE') | list | length }}
+  </span>
+  <span class="badge badge-redundant" style="font-size:0.85rem; padding:.4rem 1rem;">
+    <i class="fa-solid fa-ban"></i>
+    Redundant: {{ logs | selectattr('classification','eq','REDUNDANT') | list | length }}
+  </span>
+  <span class="badge badge-fp" style="font-size:0.85rem; padding:.4rem 1rem;">
+    <i class="fa-solid fa-exclamation"></i>
+    False Positive: {{ logs | selectattr('classification','eq','FALSE_POSITIVE') | list | length }}
+  </span>
+</div>
+
+<!-- Filter Bar -->
+<div style="display:flex; gap:1rem; margin-bottom:1.25rem; flex-wrap:wrap; align-items:center;">
+  <select id="filterClass" style="max-width:200px; padding:.5rem .9rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-family:Inter,sans-serif; font-size:.875rem;">
+    <option value="ALL">All Classifications</option>
+    <option value="UNIQUE">Unique Only</option>
+    <option value="REDUNDANT">Redundant Only</option>
+    <option value="FALSE_POSITIVE">False Positive Only</option>
+  </select>
+  <input type="text" id="logSearch" placeholder="Search logs..." style="max-width:280px;">
+</div>
+
+<!-- Logs Table -->
+{% if logs %}
+<div class="table-wrapper">
+  <table id="logsTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Submitted ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Classification</th>
+        <th>Similarity</th>
+        <th>Match Reason</th>
+        <th>Submitted At</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr data-class="{{ log.classification }}">
+        <td style="color:var(--text-muted); font-size:0.78rem;">{{ loop.index }}</td>
+        <td class="mono">{{ log.submitted_uid or '—' }}</td>
+        <td style="font-weight:500;">{{ log.submitted_name }}</td>
+        <td class="mono" style="font-size:0.8rem;">{{ log.submitted_email }}</td>
+        <td class="mono">{{ log.submitted_phone }}</td>
+        <td>
+          {% if log.classification == 'UNIQUE' %}
+            <span class="badge badge-unique"><i class="fa-solid fa-check"></i> Unique</span>
+          {% elif log.classification == 'REDUNDANT' %}
+            <span class="badge badge-redundant"><i class="fa-solid fa-ban"></i> Redundant</span>
+          {% else %}
+            <span class="badge badge-fp"><i class="fa-solid fa-exclamation"></i> False +ve</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="display:flex; align-items:center; gap:.5rem;">
+            <div style="width:60px; height:6px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden;">
+              <div style="height:100%;
+                background: {% if log.similarity_score >= 95 %}#ef4444{% elif log.similarity_score >= 75 %}#f59e0b{% else %}#10b981{% endif %};
+                width:{{ log.similarity_score | round(0) }}%;
+                border-radius:999px;">
+              </div>
+            </div>
+            <span style="font-size:0.78rem; color:var(--text-secondary);">
+              {{ log.similarity_score | round(1) }}%
+            </span>
+          </div>
+        </td>
+        <td style="font-size:0.78rem; color:var(--text-secondary); max-width:220px;">
+          {{ log.match_reason[:100] ~ '...' if log.match_reason and log.match_reason|length > 100 else log.match_reason or '—' }}
+        </td>
+        <td style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap;">
+          {{ log.submitted_at.strftime('%d %b %Y %H:%M') if log.submitted_at else '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="empty-icon">📄</div>
+    <h3>No logs yet</h3>
+    <p>Submit records and they'll appear here with their classification results</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Filter by classification ───────────────
+const filterSelect = document.getElementById('filterClass');
+const logSearch    = document.getElementById('logSearch');
+const table        = document.getElementById('logsTable');
+
+function applyFilters() {
+  if (!table) return;
+  const cls = filterSelect.value;
+  const q   = logSearch.value.toLowerCase();
+
+  table.querySelectorAll('tbody tr').forEach(row => {
+    const matchCls = cls === 'ALL' || row.dataset.class === cls;
+    const matchQ   = !q || row.textContent.toLowerCase().includes(q);
+    row.style.display = (matchCls && matchQ) ? '' : 'none';
+  });
+}
+
+filterSelect.addEventListener('change', applyFilters);
+logSearch.addEventListener('input', applyFilters);
+</script>
+{% endblock %}

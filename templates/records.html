@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}All Records{% endblock %}
+
+{% block content %}
+<!--
+  File: templates/records.html
+  Purpose: View all master records with search and delete functionality
+-->
+
+<div class="page-header">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <h1><i class="fa-solid fa-database"></i> Master Records</h1>
+      <p>All verified unique records stored in the system ({{ records | length }} total)</p>
+    </div>
+    <a href="{{ url_for('add_record_form') }}" class="btn btn-primary">
+      <i class="fa-solid fa-plus"></i> Add Record
+    </a>
+  </div>
+</div>
+
+<!-- Search Bar -->
+<div style="margin-bottom:1.5rem;">
+  <div class="search-wrapper">
+    <span class="search-icon"><i class="fa-solid fa-search"></i></span>
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search by name, email, phone, city..."
+      autocomplete="off">
+    <div class="search-results-dropdown" id="searchDropdown"></div>
+  </div>
+</div>
+
+<!-- Records Table -->
+{% if records %}
+<div class="table-wrapper">
+  <table id="recordsTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Unique ID</th>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>City</th>
+        <th>State</th>
+        <th>Added On</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td style="color:var(--text-muted); font-size:0.78rem;">{{ loop.index }}</td>
+        <td><span class="mono badge badge-unique">{{ r.unique_id }}</span></td>
+        <td style="font-weight:600;">{{ r.full_name }}</td>
+        <td class="mono" style="font-size:0.82rem;">{{ r.email }}</td>
+        <td class="mono">{{ r.phone }}</td>
+        <td>{{ r.city }}</td>
+        <td style="color:var(--text-secondary);">{{ r.state }}</td>
+        <td style="color:var(--text-muted); font-size:0.78rem;">
+          {{ r.created_at.strftime('%d %b %Y') if r.created_at else '—' }}
+        </td>
+        <td>
+          <form action="{{ url_for('delete_record', record_id=r.id) }}" method="POST"
+                onsubmit="return confirm('Delete this record? This action cannot be undone.');">
+            <button type="submit" class="btn btn-danger btn-sm"
+                    title="Delete Record">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h3>No records yet</h3>
+    <p>Add your first record using the button above</p>
+    <br>
+    <a href="{{ url_for('add_record_form') }}" class="btn btn-primary">
+      <i class="fa-solid fa-plus"></i> Add First Record
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Live Search via AJAX ───────────────────
+const searchInput   = document.getElementById('searchInput');
+const dropdown      = document.getElementById('searchDropdown');
+const recordsTable  = document.getElementById('recordsTable');
+let debounceTimer;
+
+searchInput.addEventListener('input', function() {
+  clearTimeout(debounceTimer);
+  const q = this.value.trim();
+
+  if (!q) {
+    dropdown.classList.remove('visible');
+    dropdown.innerHTML = '';
+    if (recordsTable) recordsTable.style.display = '';
+    return;
+  }
+
+  debounceTimer = setTimeout(async () => {
+    const resp = await fetch(`/search?q=${encodeURIComponent(q)}`);
+    const data = await resp.json();
+
+    if (data.length === 0) {
+      dropdown.innerHTML = `
+        <div class="search-result-item">
+          <div class="name" style="color:var(--text-muted)">No results found</div>
+        </div>`;
+    } else {
+      dropdown.innerHTML = data.map(r => `
+        <div class="search-result-item">
+          <div class="name">${r.full_name} <span class="mono" style="font-size:.7rem; color:var(--text-muted)">${r.unique_id}</span></div>
+          <div class="meta">${r.email} · ${r.phone} · ${r.city}, ${r.state}</div>
+        </div>
+      `).join('');
+    }
+
+    dropdown.classList.add('visible');
+  }, 350);
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+    dropdown.classList.remove('visible');
+  }
+});
+
+// ── Client-side filter on table rows ──────
+searchInput.addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  if (!recordsTable) return;
+  recordsTable.querySelectorAll('tbody tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

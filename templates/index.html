@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!--
+  File: templates/index.html
+  Purpose: Main dashboard showing all statistics and analytics
+-->
+
+<div class="page-header">
+  <h1><i class="fa-solid fa-chart-pie"></i> System Dashboard</h1>
+  <p>Real-time overview of data ingestion and duplicate detection metrics</p>
+</div>
+
+<!-- ════ STAT CARDS ════════════════════════ -->
+<div class="stats-grid">
+
+  <!-- Total Records -->
+  <div class="stat-card total">
+    <div class="stat-icon"><i class="fa-solid fa-database"></i></div>
+    <div class="stat-value" id="totalVal">{{ stats.get('live_records', 0) }}</div>
+    <div class="stat-label">Total Unique Records</div>
+  </div>
+
+  <!-- Unique -->
+  <div class="stat-card unique">
+    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="stat-value" id="uniqueVal">{{ stats.get('log_unique', 0) }}</div>
+    <div class="stat-label">Unique Submissions</div>
+  </div>
+
+  <!-- Redundant -->
+  <div class="stat-card redundant">
+    <div class="stat-icon"><i class="fa-solid fa-ban"></i></div>
+    <div class="stat-value" id="redundantVal">{{ stats.get('log_redundant', 0) }}</div>
+    <div class="stat-label">Redundant (Blocked)</div>
+  </div>
+
+  <!-- False Positives -->
+  <div class="stat-card false-pos">
+    <div class="stat-icon"><i class="fa-solid fa-exclamation-triangle"></i></div>
+    <div class="stat-value" id="fpVal">{{ stats.get('log_false_positive', 0) }}</div>
+    <div class="stat-label">False Positives</div>
+  </div>
+
+</div>
+
+<!-- ════ CHARTS + RECENT ACTIVITY ═════════ -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+
+  <!-- Donut Chart: Classification Breakdown -->
+  <div class="card">
+    <h3 style="font-size:0.9rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.08em; margin-bottom:1.2rem;">
+      <i class="fa-solid fa-chart-pie" style="color:var(--accent-primary)"></i> Classification Breakdown
+    </h3>
+    <div class="chart-container">
+      <canvas id="classChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent Submissions -->
+  <div class="card">
+    <h3 style="font-size:0.9rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.08em; margin-bottom:1.2rem;">
+      <i class="fa-solid fa-clock" style="color:var(--accent-primary)"></i> Recent Submissions
+    </h3>
+
+    {% if stats.get('recent_submissions') %}
+    <div style="display:flex; flex-direction:column; gap:0.75rem;">
+      {% for sub in stats.recent_submissions %}
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:0.7rem; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid var(--border-color);">
+        <div>
+          <div style="font-weight:600; font-size:0.875rem;">{{ sub.submitted_name }}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted);">{{ sub.submitted_email }}</div>
+        </div>
+        <div style="text-align:right;">
+          {% if sub.classification == 'UNIQUE' %}
+            <span class="badge badge-unique"><i class="fa-solid fa-check"></i> UNIQUE</span>
+          {% elif sub.classification == 'REDUNDANT' %}
+            <span class="badge badge-redundant"><i class="fa-solid fa-times"></i> REDUNDANT</span>
+          {% else %}
+            <span class="badge badge-fp"><i class="fa-solid fa-exclamation"></i> FALSE +VE</span>
+          {% endif %}
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
+            {{ sub.similarity_score | round(1) }}% match
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <h3>No submissions yet</h3>
+      <p>Add your first record to see activity here</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ════ METRICS ROW ═══════════════════════ -->
+<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+
+  <!-- Duplicate Rate -->
+  <div class="card" style="text-align:center;">
+    <i class="fa-solid fa-percent" style="font-size:2rem; color:var(--color-redundant); margin-bottom:.5rem;"></i>
+    <div style="font-size:2.2rem; font-weight:800; color:var(--color-redundant);">
+      {{ stats.get('duplicate_rate', 0) }}%
+    </div>
+    <div style="font-size:0.78rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.08em;">
+      Duplicate Rate
+    </div>
+  </div>
+
+  <!-- Total Submissions -->
+  <div class="card" style="text-align:center;">
+    <i class="fa-solid fa-paper-plane" style="font-size:2rem; color:var(--accent-teal); margin-bottom:.5rem;"></i>
+    <div style="font-size:2.2rem; font-weight:800; color:var(--accent-teal);">
+      {{ stats.get('total_submissions', 0) }}
+    </div>
+    <div style="font-size:0.78rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.08em;">
+      Total Submissions
+    </div>
+  </div>
+
+  <!-- Top City -->
+  <div class="card" style="text-align:center;">
+    <i class="fa-solid fa-location-dot" style="font-size:2rem; color:var(--accent-secondary); margin-bottom:.5rem;"></i>
+    <div style="font-size:1.4rem; font-weight:800; color:var(--accent-secondary);">
+      {% if stats.get('top_cities') %}{{ stats.top_cities[0].city }}{% else %}—{% endif %}
+    </div>
+    <div style="font-size:0.78rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.08em;">
+      Top City
+    </div>
+  </div>
+</div>
+
+<!-- ════ QUICK ACTIONS ═════════════════════ -->
+<div class="card">
+  <h3 style="font-size:0.9rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.08em; margin-bottom:1rem;">
+    <i class="fa-solid fa-lightning-bolt" style="color:var(--accent-primary)"></i> Quick Actions
+  </h3>
+  <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+    <a href="{{ url_for('add_record_form') }}" class="btn btn-primary">
+      <i class="fa-solid fa-plus"></i> Add New Record
+    </a>
+    <a href="{{ url_for('view_records') }}" class="btn btn-outline">
+      <i class="fa-solid fa-table"></i> View All Records
+    </a>
+    <a href="{{ url_for('view_logs') }}" class="btn btn-outline">
+      <i class="fa-solid fa-list"></i> View Submission Logs
+    </a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Donut Chart: Classification Breakdown ──
+const classCtx = document.getElementById('classChart');
+if (classCtx) {
+  new Chart(classCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Unique', 'Redundant', 'False Positive'],
+      datasets: [{
+        data: [
+          {{ stats.get('log_unique', 0) }},
+          {{ stats.get('log_redundant', 0) }},
+          {{ stats.get('log_false_positive', 0) }}
+        ],
+        backgroundColor: [
+          'rgba(16,185,129,0.8)',
+          'rgba(239,68,68,0.8)',
+          'rgba(245,158,11,0.8)'
+        ],
+        borderColor: [
+          '#10b981', '#ef4444', '#f59e0b'
+        ],
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#94a3b8', padding: 16, font: { family: 'Inter', size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+              const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+              return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+            }
+          }
+        }
+      },
+      cutout: '70%'
+    }
+  });
+}
+
+// ── Counter Animation ──────────────────────
+function animateCounter(el, target) {
+  let current = 0;
+  const step = Math.max(1, Math.floor(target / 40));
+  const interval = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(interval);
+  }, 30);
+}
+
+document.querySelectorAll('.stat-value').forEach(el => {
+  const val = parseInt(el.textContent, 10) || 0;
+  animateCounter(el, val);
+});
+</script>
+{% endblock %}

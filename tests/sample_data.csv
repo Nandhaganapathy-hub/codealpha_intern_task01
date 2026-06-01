@@ -1,0 +1,8 @@
+unique_id,full_name,email,phone,address,city,state,country
+EMP011,Rahul Gupta,rahul.gupta@sample.com,9100000001,10 Civil Lines,Allahabad,UP,India
+EMP012,Sneha Joshi,sneha.joshi@sample.com,9100000002,22 FC Road,Pune,Maharashtra,India
+EMP013,Kiran Kumar,kiran.kumar@sample.com,9100000003,55 Jubilee Road,Coimbatore,Tamil Nadu,India
+EMP014,Pooja Sharma,pooja.sharma@sample.com,9100000004,77 Lajpat Nagar,Delhi,Delhi,India
+EMP015,Ankit Verma,ankit.verma@sample.com,9100000005,33 Vijay Nagar,Indore,MP,India
+DUPLICATE_OF_EMP001,,aarav.sharma@email.com,9876543210,Different Address,Mumbai,Maharashtra,India
+SIMILAR_EMP016,Rahull Gupta,rahul.guptaa@sample.com,9200000006,10 Civil Line,Allahabad,UP,India
