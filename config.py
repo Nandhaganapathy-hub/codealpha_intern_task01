@@ -15,14 +15,7 @@ import os
 # Update these values with YOUR MySQL credentials
 # ─────────────────────────────────────────────
 DB_CONFIG = {
-    "host":     os.environ.get("DB_HOST",     "localhost"),
-    "user":     os.environ.get("DB_USER",     "root"),       # <-- Change this
-    "password": os.environ.get("DB_PASSWORD", "Nandharoot@1"),       # <-- Change this
-    "database": os.environ.get("DB_NAME",     "data_redundancy_db"),
-    "port":     int(os.environ.get("DB_PORT", 3306)),
-    "charset":  "utf8mb4",
-    "autocommit": False,
-    "connection_timeout": 30
+    "database": os.environ.get("DB_PATH", os.path.join(os.path.abspath(os.path.dirname(__file__)), "database", "data_redundancy.db"))
 }
 
 # ─────────────────────────────────────────────

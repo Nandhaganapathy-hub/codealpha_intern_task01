@@ -103,14 +103,14 @@ class DuplicateDetector:
             dict: Classification result if match found, else None
         """
         db = get_db()
-        cursor = db.cursor(dictionary=True)
+        cursor = db.cursor()
 
         sql = """
             SELECT id, unique_id, full_name, email, phone, address, city, state
             FROM records
-            WHERE LOWER(email)     = LOWER(%s)
-               OR phone            = %s
-               OR UPPER(unique_id) = UPPER(%s)
+            WHERE LOWER(email)     = LOWER(?)
+               OR phone            = ?
+               OR UPPER(unique_id) = UPPER(?)
             LIMIT 1
         """
         cursor.execute(sql, (data["email"], data["phone"], data["unique_id"]))
@@ -165,7 +165,7 @@ class DuplicateDetector:
             dict: Classification result if >= fp_threshold, else None
         """
         db = get_db()
-        cursor = db.cursor(dictionary=True)
+        cursor = db.cursor()
         cursor.execute("""
             SELECT id, unique_id, full_name, email, phone, address, city, state
             FROM records

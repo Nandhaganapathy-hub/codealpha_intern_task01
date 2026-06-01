@@ -1,15 +1,8 @@
 -- ============================================================
--- DATA REDUNDANCY REMOVAL SYSTEM - DATABASE SCHEMA
+-- DATA REDUNDANCY REMOVAL SYSTEM - DATABASE SCHEMA (SQLITE)
 -- File: database/schema.sql
 -- Purpose: Creates all tables for the system
 -- ============================================================
-
--- Step 1: Create and use the database
-CREATE DATABASE IF NOT EXISTS data_redundancy_db
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE data_redundancy_db;
 
 -- ============================================================
 -- TABLE: records
@@ -17,7 +10,7 @@ USE data_redundancy_db;
 -- This is the MASTER table — no duplicates allowed here
 -- ============================================================
 CREATE TABLE IF NOT EXISTS records (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     unique_id       VARCHAR(100) NOT NULL UNIQUE,   -- Unique identifier (e.g., employee ID, customer ID)
     full_name       VARCHAR(255) NOT NULL,            -- Full name of the person
     email           VARCHAR(255) NOT NULL UNIQUE,    -- Email must be unique
@@ -27,7 +20,7 @@ CREATE TABLE IF NOT EXISTS records (
     state           VARCHAR(100),                    -- State/Province
     country         VARCHAR(100) DEFAULT 'India',    -- Country
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- When it was first added
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- Last update time
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP   -- Last update time
 );
 
 -- ============================================================
@@ -36,16 +29,16 @@ CREATE TABLE IF NOT EXISTS records (
 -- Tracks: UNIQUE, REDUNDANT (duplicate), or FALSE_POSITIVE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS submission_log (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     submitted_uid   VARCHAR(100),                    -- Submitted unique_id
     submitted_name  VARCHAR(255),                    -- Submitted name
     submitted_email VARCHAR(255),                    -- Submitted email
     submitted_phone VARCHAR(20),                     -- Submitted phone
     submitted_addr  TEXT,                            -- Submitted address
-    classification  ENUM('UNIQUE','REDUNDANT','FALSE_POSITIVE') NOT NULL,  -- Result
+    classification  VARCHAR(20) NOT NULL CHECK (classification IN ('UNIQUE', 'REDUNDANT', 'FALSE_POSITIVE')),  -- Result
     match_reason    TEXT,                            -- Why it was classified this way
     similarity_score FLOAT DEFAULT 0.0,             -- How similar it is (0-100%)
-    matched_record_id INT,                           -- Which master record it matched (if any)
+    matched_record_id INTEGER,                       -- Which master record it matched (if any)
     submitted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (matched_record_id) REFERENCES records(id) ON DELETE SET NULL
 );
@@ -56,13 +49,13 @@ CREATE TABLE IF NOT EXISTS submission_log (
 -- Helps analysts review potential duplicates manually
 -- ============================================================
 CREATE TABLE IF NOT EXISTS duplicate_pairs (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
-    record_id_1     INT NOT NULL,
-    record_id_2     INT NOT NULL,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_id_1     INTEGER NOT NULL,
+    record_id_2     INTEGER NOT NULL,
     similarity_score FLOAT NOT NULL,               -- Combined similarity percentage
     name_score      FLOAT DEFAULT 0.0,             -- Name similarity score
     address_score   FLOAT DEFAULT 0.0,             -- Address similarity score
-    status          ENUM('PENDING','CONFIRMED','DISMISSED') DEFAULT 'PENDING',
+    status          VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'CONFIRMED', 'DISMISSED')),
     detected_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (record_id_1) REFERENCES records(id) ON DELETE CASCADE,
     FOREIGN KEY (record_id_2) REFERENCES records(id) ON DELETE CASCADE
@@ -73,35 +66,34 @@ CREATE TABLE IF NOT EXISTS duplicate_pairs (
 -- Purpose: Caches dashboard numbers so we don't recalculate every time
 -- ============================================================
 CREATE TABLE IF NOT EXISTS dashboard_stats (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     stat_key        VARCHAR(100) UNIQUE NOT NULL,   -- e.g., 'total_unique', 'total_redundant'
-    stat_value      INT DEFAULT 0,
-    last_updated    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    stat_value      INTEGER DEFAULT 0,
+    last_updated    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================================
 -- INDEXES: Speed up search queries significantly
 -- ============================================================
-CREATE INDEX idx_email    ON records(email);
-CREATE INDEX idx_phone    ON records(phone);
-CREATE INDEX idx_uid      ON records(unique_id);
-CREATE INDEX idx_city     ON records(city);
-CREATE INDEX idx_log_class ON submission_log(classification);
+CREATE INDEX IF NOT EXISTS idx_email    ON records(email);
+CREATE INDEX IF NOT EXISTS idx_phone    ON records(phone);
+CREATE INDEX IF NOT EXISTS idx_uid      ON records(unique_id);
+CREATE INDEX IF NOT EXISTS idx_city     ON records(city);
+CREATE INDEX IF NOT EXISTS idx_log_class ON submission_log(classification);
 
 -- ============================================================
 -- SEED: Initialize dashboard statistics counters
 -- ============================================================
-INSERT INTO dashboard_stats (stat_key, stat_value) VALUES
+INSERT OR IGNORE INTO dashboard_stats (stat_key, stat_value) VALUES
 ('total_records',   0),
 ('total_unique',    0),
 ('total_redundant', 0),
-('total_false_pos', 0)
-ON DUPLICATE KEY UPDATE stat_value = stat_value;
+('total_false_pos', 0);
 
 -- ============================================================
 -- SEED: Sample unique records for testing
 -- ============================================================
-INSERT INTO records (unique_id, full_name, email, phone, address, city, state, country) VALUES
+INSERT OR IGNORE INTO records (unique_id, full_name, email, phone, address, city, state, country) VALUES
 ('EMP001', 'Aarav Sharma',     'aarav.sharma@email.com',    '9876543210', '12 MG Road',          'Mumbai',   'Maharashtra', 'India'),
 ('EMP002', 'Priya Nair',       'priya.nair@email.com',      '9123456780', '45 Anna Salai',        'Chennai',  'Tamil Nadu',  'India'),
 ('EMP003', 'Rohan Mehta',      'rohan.mehta@email.com',     '9988776655', '78 Sector 21',         'Noida',    'UP',          'India'),

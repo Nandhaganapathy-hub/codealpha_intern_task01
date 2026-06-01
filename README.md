@@ -2,7 +2,7 @@
 
 > **CodeAlpha Internship Project** — A full-stack web application that detects and prevents duplicate data entries using exact matching and AI-powered fuzzy string comparison.
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![Flask](https://img.shields.io/badge/Flask-3.0-green) ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange) ![RapidFuzz](https://img.shields.io/badge/RapidFuzz-3.6-purple)
+![Python](https://img.shields.io/badge/Python-3.10+-blue) ![Flask](https://img.shields.io/badge/Flask-3.0-green) ![SQLite](https://img.shields.io/badge/SQLite-3-orange) ![RapidFuzz](https://img.shields.io/badge/RapidFuzz-3.6-purple)
 
 ---
 
@@ -19,7 +19,7 @@ codealpha_intern_task1/
 │
 ├── modules/                  ← Backend logic (Python packages)
 │   ├── __init__.py
-│   ├── db.py                 ← MySQL connection manager
+│   ├── db.py                 ← SQLite connection manager
 │   ├── validator.py          ← Input validation (regex-based)
 │   ├── detector.py           ← Duplicate detection engine (RapidFuzz)
 │   └── dashboard.py          ← Dashboard statistics queries
@@ -64,13 +64,12 @@ codealpha_intern_task1/
 
 Make sure you have installed:
 - **Python 3.10+** — [python.org](https://python.org)
-- **MySQL 8.0+** — [mysql.com](https://dev.mysql.com/downloads/)
+- **SQLite 3** (built directly into Python!)
 - **pip** (comes with Python)
 
 Verify:
 ```bash
 python --version   # Should say Python 3.10.x or higher
-mysql --version    # Should say mysql  Ver 8.x
 ```
 
 ---
@@ -108,46 +107,19 @@ pip install -r requirements.txt
 
 This installs:
 - `Flask` — Web framework
-- `mysql-connector-python` — MySQL driver
 - `rapidfuzz` — Fuzzy string matching
 - `pandas` — Data manipulation for CSV processing
 - `flask-cors` — Cross-origin requests
 
 ---
 
-### Step 5: Set Up MySQL Database
+### Step 5: Run & Auto-Initialize the SQLite Database
 
-Open MySQL shell or MySQL Workbench, then run:
+You don't need any manual database configuration! The system is set up to automatically create and seed the SQLite database file (`database/data_redundancy.db`) with 10 test records on startup.
 
-```bash
-# From terminal
-mysql -u root -p < database/schema.sql
-```
-
-OR open MySQL Workbench → Open SQL Script → `database/schema.sql` → Execute.
-
-This creates:
-- The `data_redundancy_db` database
-- All 4 tables
-- 10 sample seed records
+If you ever want to reset the database, simply delete the `database/data_redundancy.db` file and restart the application.
 
 ---
-
-### Step 6: Configure Your Database Credentials
-
-Open `config.py` and update:
-
-```python
-DB_CONFIG = {
-    "host":     "localhost",
-    "user":     "root",         # ← Your MySQL username
-    "password": "YOUR_PASSWORD", # ← Your MySQL password
-    "database": "data_redundancy_db",
-    ...
-}
-```
-
-OR copy `.env.example` to `.env` and fill in your values (more secure).
 
 ---
 
@@ -295,8 +267,8 @@ Increase `DUPLICATE_THRESHOLD` to be more lenient. Decrease `FALSE_POSITIVE_THRE
 | Charts | Chart.js | Dashboard donut chart |
 | Icons | Font Awesome 6 | UI iconography |
 | Backend | Flask 3.0 | Web framework |
-| Database | MySQL 8.0 | Persistent storage |
-| DB Driver | mysql-connector-python | Python ↔ MySQL bridge |
+| Database | SQLite 3 | Persistent storage (embedded, serverless) |
+| DB Driver | sqlite3 (standard library) | Built-in Python ↔ SQLite bridge |
 | Fuzzy Match | RapidFuzz 3.6 | String similarity scoring |
 | Data Processing | Pandas | CSV/bulk processing |
 | Testing | pytest + unittest.mock | Automated unit tests |

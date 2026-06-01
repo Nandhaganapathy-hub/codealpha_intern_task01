@@ -109,7 +109,7 @@ def view_records():
     Displays the full master records table.
     """
     db = get_db()
-    cursor = db.cursor(dictionary=True)
+    cursor = db.cursor()
     cursor.execute("""
         SELECT id, unique_id, full_name, email, phone, city, state, created_at
         FROM records
@@ -129,7 +129,7 @@ def view_logs():
     Displays all submission attempts with their classification.
     """
     db = get_db()
-    cursor = db.cursor(dictionary=True)
+    cursor = db.cursor()
     cursor.execute("""
         SELECT sl.*, r.full_name AS matched_name
         FROM submission_log sl
@@ -156,15 +156,15 @@ def search_records():
         return jsonify([])
 
     db = get_db()
-    cursor = db.cursor(dictionary=True)
+    cursor = db.cursor()
     sql = """
         SELECT id, unique_id, full_name, email, phone, city, state
         FROM records
-        WHERE full_name   LIKE %s
-           OR email       LIKE %s
-           OR phone       LIKE %s
-           OR unique_id   LIKE %s
-           OR city        LIKE %s
+        WHERE full_name   LIKE ?
+           OR email       LIKE ?
+           OR phone       LIKE ?
+           OR unique_id   LIKE ?
+           OR city        LIKE ?
         LIMIT 20
     """
     like_q = f"%{query}%"
@@ -185,7 +185,7 @@ def delete_record(record_id):
     """
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("DELETE FROM records WHERE id = %s", (record_id,))
+    cursor.execute("DELETE FROM records WHERE id = ?", (record_id,))
     db.commit()
     cursor.close()
     _update_stats("total_records", -1)
@@ -238,7 +238,7 @@ def _insert_record(data: dict):
     cursor = db.cursor()
     sql = """
         INSERT INTO records (unique_id, full_name, email, phone, address, city, state, country)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """
     cursor.execute(sql, (
         data["unique_id"], data["full_name"], data["email"],
@@ -260,7 +260,7 @@ def _log_submission(data: dict, result: dict):
         INSERT INTO submission_log
           (submitted_uid, submitted_name, submitted_email, submitted_phone,
            submitted_addr, classification, match_reason, similarity_score, matched_record_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     cursor.execute(sql, (
         data["unique_id"],
@@ -285,8 +285,8 @@ def _update_stats(key: str, delta: int):
     cursor = db.cursor()
     cursor.execute("""
         UPDATE dashboard_stats
-        SET stat_value = GREATEST(0, stat_value + %s)
-        WHERE stat_key = %s
+        SET stat_value = MAX(0, stat_value + ?)
+        WHERE stat_key = ?
     """, (delta, key))
     db.commit()
     cursor.close()

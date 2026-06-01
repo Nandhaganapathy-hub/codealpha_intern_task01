@@ -30,7 +30,7 @@ def get_dashboard_stats() -> dict:
         dict: All stats needed to render the dashboard
     """
     db = get_db()
-    cursor = db.cursor(dictionary=True)
+    cursor = db.cursor()
 
     # ── Cached stat counters ──────────────────
     cursor.execute("SELECT stat_key, stat_value FROM dashboard_stats")
@@ -79,13 +79,13 @@ def get_dashboard_stats() -> dict:
 
     # ── Monthly trend (last 6 months) ─────────
     cursor.execute("""
-        SELECT DATE_FORMAT(submitted_at, '%Y-%m') AS month,
+        SELECT strftime('%Y-%m', submitted_at) AS month,
                COUNT(*) AS total,
-               SUM(classification = 'UNIQUE')         AS unique_c,
-               SUM(classification = 'REDUNDANT')      AS redundant_c,
-               SUM(classification = 'FALSE_POSITIVE') AS fp_c
+               SUM(CASE WHEN classification = 'UNIQUE' THEN 1 ELSE 0 END)         AS unique_c,
+               SUM(CASE WHEN classification = 'REDUNDANT' THEN 1 ELSE 0 END)      AS redundant_c,
+               SUM(CASE WHEN classification = 'FALSE_POSITIVE' THEN 1 ELSE 0 END) AS fp_c
         FROM submission_log
-        WHERE submitted_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        WHERE submitted_at >= datetime('now', '-6 month')
         GROUP BY month
         ORDER BY month
     """)
